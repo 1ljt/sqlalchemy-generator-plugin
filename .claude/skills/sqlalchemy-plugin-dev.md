@@ -50,6 +50,21 @@ description: IntelliJ IDEA / PyCharm 插件开发与 SQLAlchemy 2.0 代码生成
 - **输出规范**：
   - Python 脚本的 `stdout` **只能**输出结构化的 JSON 结果（如 `{"status": "success", "files": [...]}` 或 `{"status": "error", "message": "..."}`）。
   - 所有调试日志必须输出到 `stderr`，防止污染 JSON 解析。
+  - 大 schema 优先使用 `--result-file <path>`，避免 Windows 管道缓冲区上限导致死锁。
+- **退出码约定**（Kotlin 端据此分支处理，详见 `engine/protocol.py`）：
+
+  | 退出码 | 含义 | `error_type` |
+  |---|---|---|
+  | 0 | 成功 | — |
+  | 1 | 未预期的内部错误 | `internal_error` |
+  | 2 | 缺少 Python 依赖 | `missing_dependencies` |
+  | 3 | 数据库连不上 | `connection_failed` |
+  | 4 | 配置无效/不完整 | `invalid_config` |
+  | 5 | 生成过程失败 | `generation_failed` |
+
+- **编码（Windows 必查）**：`GeneralCommandLine` 必须为子进程注入环境变量 `PYTHONUTF8=1` 与 `PYTHONIOENCODING=utf-8`。否则 Windows 子进程回退到控制台代码页（GBK），含中文注释的表结构在 stderr/traceback 中会解码失败。引擎侧 stdout 默认 ASCII 转义（`\uXXXX`），保证任何读取端编码都不会损坏数据。
+- **文件写入职责**：Python 只返回 `relative_path` + `content`，**绝不自己写盘**；由 Kotlin 在 `WriteCommandAction` 中写入并 `VfsUtil.markDirtyAndRefresh`，以保持 IDE 撤销栈与 VFS 一致。
+- **临时文件安全**：`config.json` 含明文密码，进程退出后必须立即删除；结果 JSON 中的密码字段已由引擎脱敏为 `***`，可安全写入日志。
 
 ## 5. Python 依赖管理策略
 
@@ -64,6 +79,15 @@ description: IntelliJ IDEA / PyCharm 插件开发与 SQLAlchemy 2.0 代码生成
 - **原则**：不擅自执行 `pip install`，不修改用户 Python 环境的 site-packages，让用户完全掌控依赖安装时机和范围。
 
 ## 6. 开发与修改工作流
-1. 修改 Python 生成逻辑时，优先在 `src/main/resources/python_engine/` 下编写对应的 `pytest` 测试用例验证生成的字符串语法正确性（可用 `ast.parse()` 校验生成的 Python 代码合法性）。
-2. 修改 Kotlin 代码后，必须检查 `plugin.xml` 中的 Action ID、依赖声明与类路径是否完全匹配。
-3. 每次新增用户可配置项（如自定义类型映射规则、基类导入路径），必须同步更新：UI 面板状态持久化（`PersistentStateComponent`） -> JSON 通信结构 -> Python Jinja2 模板。
+1. 修改 Python 生成逻辑时，在 `src/main/resources/python_engine/tests/` 下补充测试用例。测试用 **`unittest`** 编写（stdlib 即可运行，`pytest` 也能直接收集，不强制安装第三方 runner）：
+   ```bash
+   cd src/main/resources/python_engine
+   python -m unittest discover -s tests -t .
+   python tools/measure_coverage.py    # 纯 stdlib 行覆盖率，阈值 80%
+   ```
+2. **`ast.parse()` 不足以验证生成代码**。它只能证明语法合法，无法发现 SQLAlchemy 在类定义期就会抛出的错误。典型反例：`mapped_column(String(50), 'userName')` 语法完全正确，但列名必须在类型**之前**，否则字符串会落进 `*arg`（期望 `SchemaItem`）而抛 `ArgumentError`。因此端到端测试必须真正 **导入生成的模块 → `Base.registry.configure()` → 建表 → 插入数据 → 遍历 relationship**。
+3. 覆盖率测量不要用 stdlib 的 `trace` 模块：其 `_Ignore.names()` 按裸模块名缓存忽略决定，会整文件漏记（`engine/schema.py` 曾测出 0% 而实际有 34 个通过的测试）。用 `tools/measure_coverage.py`。
+4. 修改 Kotlin 代码后，必须检查 `plugin.xml` 中的 Action ID、依赖声明与类路径是否完全匹配。
+5. 每次新增用户可配置项（如自定义类型映射规则、基类导入路径），必须同步更新四处：UI 面板状态持久化（`PersistentStateComponent`）→ JSON 通信结构（`engine/protocol.py` 的 `GenerationConfig`）→ 引擎逻辑 → Jinja2 模板。
+6. **Kotlin 包名不能以数字开头**：Kotlin 2.4+ 编译器拒绝 `com.github.1ljt` 这类包名段（原模板即因此无法编译）。包名统一使用 `com.github.ljt.*`；`plugin.xml` 的 `<id>` 与 `gradle.properties` 的 `group` 必须同步。
+7. 类型映射不要依赖 `isinstance` 判断：`mysql.LONGTEXT` 继承自 `sqlalchemy.String` 而非 `Text`，且 `mysql.BIT` 与 `postgresql.BIT` 同名不同义。引擎按 `(__visit_name__, dialect)` 查表；注意 `BigInteger` 的 visit_name 是 `BIG_INTEGER`（`BIGINT` 是 SQL 别名），而所有 `TypeDecorator`（含 `Interval`）都报无区分度的 `TYPE_DECORATOR`，需靠类 MRO 兜底。

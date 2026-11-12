@@ -1,0 +1,35 @@
+{{ header }}
+{% for table in tables %}
+{% if not loop.first %}
+
+
+{% endif %}
+class {{ table.class_name }}({{ base_class_name }}):
+{% if table.docstring %}
+    """{{ table.docstring }}"""
+
+{% endif %}
+    __tablename__ = "{{ table.table_name }}"
+{% if table.table_args %}
+    __table_args__ = (
+{% for arg in table.table_args %}
+        {{ arg }},
+{% endfor %}
+    )
+{% endif %}
+{% if table.is_empty %}
+    pass
+{% endif %}
+{% for col in table.columns %}
+{% for note in col.notes %}
+    # {{ note }}
+{% endfor %}
+    {{ col.attr_name }}: {{ col.annotation }} = mapped_column({{ col.args }})
+{% endfor %}
+{% if table.columns and table.relationships %}
+
+{% endif %}
+{% for rel in table.relationships %}
+    {{ rel.attr_name }}: {{ rel.annotation }} = relationship({{ rel.args }})
+{% endfor %}
+{% endfor %}

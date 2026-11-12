@@ -4,3 +4,10 @@
 .intellijPlatform
 .kotlin
 build
+
+# Python engine
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/

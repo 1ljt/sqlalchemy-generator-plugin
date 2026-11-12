@@ -1,0 +1,86 @@
+{
+  "users": {
+    "comment": "系统用户表",
+    "primary_keys": ["id"],
+    "columns": [
+      {"name": "id", "db_type": "INTEGER", "nullable": false, "autoincrement": true, "comment": "主键"},
+      {"name": "userName", "db_type": "VARCHAR(50)", "nullable": false, "comment": "登录名"},
+      {"name": "email", "db_type": "VARCHAR(255)", "nullable": true},
+      {"name": "is_active", "db_type": "TINYINT(1)", "nullable": false, "default": "1"},
+      {"name": "balance", "db_type": "DECIMAL(10,2)", "nullable": false, "default": "0.00"},
+      {"name": "profile", "db_type": "TEXT", "nullable": true},
+      {"name": "extra", "db_type": "JSON", "nullable": true},
+      {"name": "created_at", "db_type": "DATETIME", "nullable": false, "default": "CURRENT_TIMESTAMP"}
+    ],
+    "indexes": [
+      {"name": "uq_users_email", "column_names": ["email"], "unique": true},
+      {"name": "ix_users_created", "column_names": ["created_at"], "unique": false}
+    ]
+  },
+  "orders": {
+    "comment": "订单",
+    "primary_keys": ["id"],
+    "columns": [
+      {"name": "id", "db_type": "BIGINT", "nullable": false, "autoincrement": true},
+      {"name": "user_id", "db_type": "INTEGER", "nullable": false},
+      {"name": "status", "db_type": "ENUM('draft','paid','shipped')", "nullable": false},
+      {"name": "total", "db_type": "DECIMAL(12,2)", "nullable": false},
+      {"name": "shipped_at", "db_type": "DATETIME", "nullable": true},
+      {"name": "note", "db_type": "MEDIUMTEXT", "nullable": true}
+    ],
+    "foreign_keys": [
+      {"constrained_columns": ["user_id"], "referred_table": "users", "referred_columns": ["id"], "name": "fk_orders_user"}
+    ]
+  },
+  "order_items": {
+    "primary_keys": ["id"],
+    "columns": [
+      {"name": "id", "db_type": "BIGINT", "nullable": false, "autoincrement": true},
+      {"name": "order_id", "db_type": "BIGINT", "nullable": false},
+      {"name": "product_name", "db_type": "VARCHAR(200)", "nullable": false},
+      {"name": "quantity", "db_type": "INT", "nullable": false, "default": "1"},
+      {"name": "unit_price", "db_type": "NUMERIC(8,2)", "nullable": false}
+    ],
+    "foreign_keys": [
+      {"constrained_columns": ["order_id"], "referred_table": "orders", "referred_columns": ["id"], "name": "fk_items_order"}
+    ],
+    "unique_constraints": [
+      {"name": "uq_order_product", "column_names": ["order_id", "product_name"]}
+    ]
+  },
+  "employees": {
+    "comment": "员工（自引用）",
+    "primary_keys": ["id"],
+    "columns": [
+      {"name": "id", "db_type": "INTEGER", "nullable": false, "autoincrement": true},
+      {"name": "manager_id", "db_type": "INTEGER", "nullable": true},
+      {"name": "full_name", "db_type": "VARCHAR(100)", "nullable": false}
+    ],
+    "foreign_keys": [
+      {"constrained_columns": ["manager_id"], "referred_table": "employees", "referred_columns": ["id"], "name": "fk_emp_manager"}
+    ]
+  },
+  "shipments": {
+    "primary_keys": ["id"],
+    "columns": [
+      {"name": "id", "db_type": "INTEGER", "nullable": false, "autoincrement": true},
+      {"name": "shipping_address_id", "db_type": "INTEGER", "nullable": false},
+      {"name": "billing_address_id", "db_type": "INTEGER", "nullable": false}
+    ],
+    "foreign_keys": [
+      {"constrained_columns": ["shipping_address_id"], "referred_table": "addresses", "referred_columns": ["id"]},
+      {"constrained_columns": ["billing_address_id"], "referred_table": "addresses", "referred_columns": ["id"]}
+    ]
+  },
+  "addresses": {
+    "primary_keys": ["id"],
+    "columns": [
+      {"name": "id", "db_type": "INTEGER", "nullable": false, "autoincrement": true},
+      {"name": "line1", "db_type": "VARCHAR(200)", "nullable": false},
+      {"name": "class", "db_type": "VARCHAR(20)", "nullable": true},
+      {"name": "ip_addr", "db_type": "postgresql.INET", "nullable": true},
+      {"name": "external_id", "db_type": "postgresql.UUID", "nullable": true},
+      {"name": "tags", "db_type": "postgresql.JSONB", "nullable": true}
+    ]
+  }
+}

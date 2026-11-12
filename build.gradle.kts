@@ -19,3 +19,12 @@ dependencies {
         testFramework(TestFrameworkType.Platform)
     }
 }
+
+// The Python engine's tests and dev tools are development-only; the plugin
+// extracts just the engine and templates at runtime.
+tasks.withType<ProcessResources> {
+    exclude("python_engine/tests/**")
+    exclude("python_engine/tools/**")
+    exclude("**/__pycache__/**")
+    exclude("**/*.pyc")
+}

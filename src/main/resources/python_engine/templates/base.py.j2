@@ -1,0 +1,11 @@
+"""Declarative base shared by all generated SQLAlchemy models."""
+
+{% if use_future_annotations %}
+from __future__ import annotations
+
+{% endif %}
+from sqlalchemy.orm import DeclarativeBase
+
+
+class {{ base_class_name }}(DeclarativeBase):
+    """Base class for every model produced by the SQLAlchemy generator plugin."""

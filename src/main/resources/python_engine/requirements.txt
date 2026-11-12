@@ -1,0 +1,8 @@
+# Runtime dependencies of the bundled generation engine.
+# The IDE plugin checks these at startup and offers a copyable install command.
+sqlalchemy>=2.0.0
+jinja2>=3.0.0
+
+# Database drivers -- install the one matching your target database.
+pymysql>=1.0.0          # MySQL / MariaDB
+psycopg2-binary>=2.9.0  # PostgreSQL
