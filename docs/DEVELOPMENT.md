@@ -1,6 +1,6 @@
 # 开发文档 — SQLAlchemy Generator Plugin
 
-> 状态快照：2026-11-13 · 对应 commit `d686de8`
+> 状态快照：2026-11-13 · 代码基线为 Phase 1（commit `3a9b433`）
 >
 > 本文档记录**已完成的工作、待完成的工作、已知问题**。架构规范与编码约束见
 > [`.claude/skills/sqlalchemy-plugin-dev.md`](../.claude/skills/sqlalchemy-plugin-dev.md)，
@@ -19,7 +19,7 @@
 | Python 测试 | **3099 行**，359 个用例，全部通过 |
 | 引擎行覆盖率 | **91.0%**（每个模块均 ≥80%） |
 | Kotlin 代码 | **43 行**，其中 4 个文件是空占位类 |
-| 插件可用性 | 右键菜单有入口，点击只弹一条通知 |
+| 插件可用性 | 沙盒 IDE 已确认能加载插件；Action 尚未实机点击验证（见 §4.1） |
 
 | 阶段 | 状态 | Commit |
 |---|---|---|
@@ -195,14 +195,32 @@ CRLF——**而模板决定了所有生成文件的行尾**。已添加 `.gitatt
 
 ## 4. 已知问题与风险
 
-### 4.1 【高】插件从未在沙盒 IDE 中真正运行过
+### 4.1 【已部分消除 · 中】插件在沙盒 IDE 中的运行验证
 
-只执行过 `./gradlew build`，**从未跑过 `runIde`**。编译通过 ≠ 能加载。
-`plugin.xml` 的 Action 注册、通知组声明、资源释放路径目前全是纸面验证。
+**2026-11-13 更新**：已执行过一次 `runIde`，沙盒 IDE 正常启动，且
+`.intellijPlatform/sandbox/.../log_runIde/idea.log` 中确认：
 
-- **影响**：若插件加载即失败，越晚发现返工越大。
-- **建议**：在开始 Phase 2 之前先跑一次 `runIde`，右键项目验证通知能弹出。
-  这是当前性价比最高的一步。
+```
+Loaded custom plugins: SQLAlchemy Model Generator (0.0.1)
+```
+
+日志中**没有** ERROR 级记录（除 IDE 自带的 textmate bundle 噪音），也没有与
+`com.github.ljt.*` 相关的异常。**插件能够被平台正确加载。**
+
+**仍未验证的部分**：
+- Action 是否在 `ProjectViewPopupMenu` 中正确显示并可点击。
+  该次运行**没有打开任何项目**，而 `ProjectViewPopupMenu` 只在项目打开后
+  的 Project 工具窗口中存在，因此右键菜单从未被触发过。
+- 通知组 `SQLAlchemy Generator`（BALLOON）能否真正弹出气泡。
+
+**验证方法**：在沙盒 IDE 中 New Project 建一个空项目 → `Alt+1` 打开 Project
+工具窗口 → 右键任意文件 → 菜单**最底部**的 "Generate SQLAlchemy Models"。
+或按 `Ctrl+Shift+A` 搜索该 Action 名。当前点击仅弹出一条占位通知，
+不会连数据库或生成代码（那是 Phase 2–4）。
+
+**另需注意**：该次 `runIde` 的沙盒是 `IU-2026.2.3`，即 **Ultimate**。
+而本项目目标是 Community/Professional 全兼容（见 §7.3），因此
+**Community 版下的加载与运行仍未验证**，Phase 6 必须补上。
 
 ### 4.2 【高】IntelliJ 测试沙盒存在内核组件实例化失败
 
