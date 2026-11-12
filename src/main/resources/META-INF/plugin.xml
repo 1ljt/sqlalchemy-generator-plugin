@@ -1,19 +1,35 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-    <id>com.github.1ljt.sqlalchemygeneratorplugin</id>
-    <name>sqlalchemy-generator-plugin</name>
-    <vendor>1ljt</vendor>
+    <id>com.github.ljt.sqlalchemygeneratorplugin</id>
+    <name>SQLAlchemy Model Generator</name>
+    <vendor url="https://github.com/1ljt">1ljt</vendor>
+
     <description><![CDATA[
-        <p><b>sqlalchemy-generator-plugin</b> is a repository that provides a pure template to make it easier to create a new plugin project.</p>
-        <p>The main goal of this template is to speed up the setup phase of plugin development for both new and experienced developers by preconfiguring the project scaffold and CI, linking to the proper documentation pages, and keeping everything organized.</p>
+        <p>Generate SQLAlchemy 2.0 ORM models from existing MySQL / PostgreSQL database tables.</p>
+        <p>Features:</p>
+        <ul>
+            <li>Batch generate <code>Mapped[T]</code> + <code>mapped_column()</code> style model code</li>
+            <li>Multi-table selection with single-file or multi-file output modes</li>
+            <li>Auto-inferred relationships from foreign keys</li>
+            <li>Customizable Jinja2 code templates</li>
+        </ul>
+        <p>Compatible with IntelliJ IDEA Community / Ultimate and PyCharm Community / Professional.</p>
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
 
-    <resource-bundle>messages.MyBundle</resource-bundle>
-
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow factoryClass="com.github.1ljt.sqlalchemygeneratorplugin.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
-        <postStartupActivity implementation="com.github.1ljt.sqlalchemygeneratorplugin.startup.MyProjectActivity" />
+        <notificationGroup id="SQLAlchemy Generator"
+                           displayType="BALLOON"
+                           isLogByDefault="true"/>
     </extensions>
+
+    <actions>
+        <action id="SQLAlchemyGenerator.GenerateModels"
+                class="com.github.ljt.sqlalchemygeneratorplugin.actions.GenerateModelAction"
+                text="Generate SQLAlchemy Models"
+                description="Generate SQLAlchemy 2.0 ORM models from database tables">
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+        </action>
+    </actions>
 </idea-plugin>
