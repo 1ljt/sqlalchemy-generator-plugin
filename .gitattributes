@@ -1,0 +1,29 @@
+# Normalise line endings so the repository behaves the same on every platform.
+#
+# This matters beyond tidiness: the plugin bundles a Python engine under
+# src/main/resources/python_engine/ that is extracted and executed on the user's
+# machine, and its Jinja2 templates determine the line endings of every
+# generated model file. With core.autocrlf=true (the Windows default) a fresh
+# checkout silently rewrites these to CRLF, and gradlew becomes unrunnable on
+# Unix with "bad interpreter: /bin/bash^M".
+
+* text=auto eol=lf
+
+# Executables and sources that must stay LF
+gradlew        text eol=lf
+*.sh           text eol=lf
+*.py           text eol=lf
+*.j2           text eol=lf
+*.pyw          text eol=lf
+
+# Windows-only launchers must stay CRLF
+*.bat          text eol=crlf
+*.cmd          text eol=crlf
+
+# Binary assets: never touch
+*.jar          binary
+*.png          binary
+*.gif          binary
+*.ico          binary
+*.jks          binary
+*.keystore     binary
